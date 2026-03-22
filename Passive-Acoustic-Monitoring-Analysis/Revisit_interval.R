@@ -15,7 +15,23 @@ goldfinch <- filtered_detections[filtered_detections$Common.name == "European Go
 start_time <- min(filtered_detections$Detection.start)
 end_time <- max(filtered_detections$Detection.start)
 
-filtered_detections$Detection.start_strptime <- strptime(filtered_detections$Detection.start, "%Y-%m-%d %I:%M:%OS")
-time_cuts <- cut(filtered_detections$Detection.start_strptime, breaks = "min") 
+#Converting to strptime with minute bins
+filtered_detections$Detection.start_strptime <- strptime(filtered_detections$Detection.start, "%Y-%m-%d %H:%M:%OS") #Converts to strptime
+filtered_detections$Detection.start_strptime <- cut(filtered_detections$Detection.start_strptime, breaks = "min")  #cut converts it to minutes
 
-#Need to fill gaps
+#Creating the basic df to attach results to
+timestamps <- unique(unlist(labels(table(filtered_detections$Detection.start_strptime))))
+frequency_table <- data.frame("Timestamps" = as.POSIXct(timestamps, tz = "GMT", "%Y-%m-%d %H:%M:%OS"))
+
+# Next, to run a count for each species for each timestamp.
+for(Species in Species_to_analyse){
+  species_table <- table(filtered_detections[filtered_detections$Common.name == Species,]$Detection.start_strptime)
+  frequency_table <- cbind(frequency_table, species_table)
+  colnames(frequency_table)[colnames(frequency_table) == 'Freq'] <- Species
+  frequency_table <- subset(frequency_table, select = -Var1)
+}
+
+goldfinch <- frequency_table[,c("Timestamps", "European Goldfinch")]
+plot(goldfinch, type = "h")
+
+#Graph is odd - showing a peak at midnight for Goldfinch calls. but thats what the data in shows, so its not a weird formatting error or discrapancy in this code.
