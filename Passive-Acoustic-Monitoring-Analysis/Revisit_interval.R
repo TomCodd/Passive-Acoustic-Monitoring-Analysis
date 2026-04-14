@@ -67,20 +67,29 @@ for(day in days_covered){
   Selected_species <- colnames(Day_call_totals[, Day_call_totals > 100]) # Filters to only birds with over 100 calls in the day
   Selected_species <- chartr(".", "_", Selected_species) # Replaces the full stops with underscores in the names
 
+  for(Species in Selected_species){
+    if(exists(paste0(Species, "_call_dataset")) == FALSE){ # Checks to see if the species df is present
+      if(file.exists(paste0("\"data/species_call_data/", Species, "_call_dataset.csv\"")) == TRUE){ # If the df isn't present, it checks if it exists
+        eval(paste0(Species, "_call_dataset <- read.csv(\"data/species_call_data/", Species, "_call_dataset.csv\"")) # If it does exist, it imports it
+      } else {
+        # If the file doesn't exist, this creates a new df
+        eval(paste0(Species, "_call_dataset <- Daily_dataset"))
+      }
+    }
+    # Once done, it iteratively adds to the df
+    Species_subset <- day_data[, c("Timestamps", Species)] 
 
+    Species_subset$Day_Minutes <- (as.numeric(format(Species_subset$Timestamps, "%H"))*60)+(as.numeric(format(Species_subset$Timestamps, "%M")))
+    Species_subset <- Species_subset[, c("Day_Minutes", Species)]
 
-  Selected_day_data <- day_data[, c("Timestamps", Selected_species)] #Trims data down to only the selected species
+    eval(paste0(Species, "_call_dataset <- merge(", Species, "_call_dataset, Species_subset, by = \"Day_Minutes\""))
 
-  for(Species in Species_to_analyse){
-    if(exists(paste0(Species, "_call_dataset")) == FALSE){
-      if(file.exists(paste0("\"data/species_call_data/", Species, "_call_dataset.csv\"")) == TRUE){
-        eval(paste0(Species, "_call_dataset <- read.csv(\"data/species_call_data/", Species, "_call_dataset.csv\""))
+    # And saves the dataset if the last day has been added
+    if(day == days_covered[length(days_covered)]){
+      eval(paste0("write.csv(", Species, "_call_dataset, \"data/species_call_data/", Species, "_call_dataset.csv\""))
+    }
     }
   }
-
-  }
-
-
 -------
 
 
