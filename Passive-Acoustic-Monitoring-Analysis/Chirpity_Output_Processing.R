@@ -1,9 +1,11 @@
-import_files <- list.files("data/import")
+library("here")
+
+import_files <- list.files(here("data", "import"))
 
 Species_covered <- c()
 
 for(file in import_files){
-  detections <- read.csv(paste0("data/import/", file))
+  detections <- read.csv(here("data", "import", file))
 
   # Filtering out low-confidence identifications
   detections <- detections[detections$Confidence > 0.55, ]
@@ -54,16 +56,16 @@ for(file in import_files){
 
     Species_covered <- unique(c(Species_covered, Selected_species))
 
-    for(Species in Selected_species){
+    for(Species in Species_covered){
       if(exists(paste0(Species, "_call_dataset")) == FALSE){ # Checks to see if the species df is present
-        if(file.exists(paste0("\"data/species_call_data/", Species, "_call_dataset.csv\"")) == TRUE){ # If the df isn't present, it checks if it exists
-          eval(parse(text = paste0(Species, "_call_dataset <- read.csv(\"data/species_call_data/", Species, "_call_dataset.csv\")"))) # If it does exist, it imports it
+        if(file.exists(here("data", "species_call_data", paste0(Species, "_call_dataset.csv"))) == TRUE){ # If the df isn't present, it checks if it exists
+          eval(parse(text = paste0(Species, "_call_dataset <- read.csv(here(\"data\", \"species_call_data\", paste0(Species, \"_call_dataset.csv\")))"))) # If it does exist, it imports it
         } else {
           # If the file doesn't exist, this creates a new df
           eval(parse(text = paste0(Species, "_call_dataset <- Daily_dataset")))
         }
       }
-      # Once done, it iteratively adds to the df
+      # Once done, it iteratively adds to the df.
       Species_subset <- day_data[, c("Timestamps", Species)] 
 
       Species_subset$Day_Minutes <- (as.numeric(format(Species_subset$Timestamps, "%H"))*60)+(as.numeric(format(Species_subset$Timestamps, "%M")))
@@ -72,13 +74,16 @@ for(file in import_files){
       # And must rename the column from species (which is denoted by the file) to the relevant date
       colnames(Species_subset) <- c("Day_Minutes", day)
 
-      eval(parse(text = paste0(Species, "_call_dataset <- merge(", Species, "_call_dataset, Species_subset, by = \"Day_Minutes\")")))
+      # And then making sure it has the empty rows too, if no data is present
+      merge_species_subset <- merge(Daily_dataset, Species_subset, by = "Day_Minutes", all.x = TRUE)
+
+      eval(parse(text = paste0(Species, "_call_dataset <- merge(", Species, "_call_dataset, Species_subset, by = \"Day_Minutes\", all.x = TRUE)")))
 
       # And saves the dataset if the last day has been added, and the last file has been completed
       if(file == import_files[length(import_files)]){
         if(day == days_covered[length(days_covered)]){
           for(saving_species in Species_covered){
-            eval(parse(text = paste0("write.csv(", saving_species, "_call_dataset, \"data/species_call_data/", saving_species, "_call_dataset.csv\")")))
+            eval(parse(text = paste0("write.csv(", saving_species, "_call_dataset, here(\"data\", \"species_call_data\", paste0(saving_species, \"_call_dataset.csv\")))")))
           }
         }
       }
@@ -86,5 +91,5 @@ for(file in import_files){
   }
 
   # And then move the file thats just been processed to the processed folder
-  file.rename(paste0("data/import/", file), paste0("data/processed/", file))
+  #file.rename(here("data", "import", file), here("data", "processed", file))
 }
