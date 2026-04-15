@@ -1,10 +1,12 @@
 library("here")
 
 import_files <- list.files(here("data", "import"))
-
-Species_covered <- c()
+all_species_covered <- c()
 
 for(file in import_files){
+
+  Species_covered <- c()
+
   detections <- read.csv(here("data", "import", file))
 
   # Filtering out low-confidence identifications
@@ -54,7 +56,9 @@ for(file in import_files){
     Selected_species <- colnames(Day_call_totals[, Day_call_totals > 100]) # Filters to only birds with over 100 calls in the day
     Selected_species <- chartr(".", "_", Selected_species) # Replaces the full stops with underscores in the names
 
-    Species_covered <- unique(c(Species_covered, Selected_species))
+    Species_covered <- unique(c(Species_covered, Selected_species)) # Creates list for processing
+    all_species_covered <- unique(c(all_species_covered, Selected_species)) # Creates master list for saving
+    
 
     for(Species in Species_covered){
       if(exists(paste0(Species, "_call_dataset")) == FALSE){ # Checks to see if the species df is present
@@ -82,7 +86,7 @@ for(file in import_files){
       # And saves the dataset if the last day has been added, and the last file has been completed
       if(file == import_files[length(import_files)]){
         if(day == days_covered[length(days_covered)]){
-          for(saving_species in Species_covered){
+          for(saving_species in all_species_covered){
             eval(parse(text = paste0("write.csv(", saving_species, "_call_dataset, here(\"data\", \"species_call_data\", paste0(saving_species, \"_call_dataset.csv\")))")))
           }
         }
@@ -91,5 +95,5 @@ for(file in import_files){
   }
 
   # And then move the file thats just been processed to the processed folder
-  file.rename(here("data", "import", file), here("data", "processed", file))
+  #file.rename(here("data", "import", file), here("data", "processed", file))
 }
