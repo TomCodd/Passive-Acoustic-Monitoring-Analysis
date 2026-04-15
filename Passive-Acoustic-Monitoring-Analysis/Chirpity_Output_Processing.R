@@ -91,5 +91,5 @@ for(file in import_files){
   }
 
   # And then move the file thats just been processed to the processed folder
-  #file.rename(here("data", "import", file), here("data", "processed", file))
+  file.rename(here("data", "import", file), here("data", "processed", file))
 }
